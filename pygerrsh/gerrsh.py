@@ -446,12 +446,16 @@ By default all open changes are listed.
         changes = gersh.get_changes(filter_list)
         if len(changes) == 1:
             ch = changes[0]
+
             if options.get:
                 get_change(ch)
+                return
+
             if options.checkout:
                 checkout_change(ch)
-            if not options.get and not options.checkout:
-                show_change(ch)
+                return
+
+            show_change(ch)
         else:
             error("change not found")
             sys.exit(1)
