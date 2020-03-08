@@ -417,7 +417,7 @@ By default all open changes are listed.
         error("please specify gerrit host")
         sys.exit(1)
 
-    gersh = Gerrsh(host))
+    gersh = Gerrsh(host)
 
     filter_dict = {"status":"open"}
     filter_list = []
