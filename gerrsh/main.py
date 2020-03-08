@@ -55,9 +55,17 @@ class GerrFile:
         self.dels = 0
         self.ins = 0
 
+class GerrComment:
+    def __init__(self):
+        self.file = None
+        self.line = -1
+        self.reviewer = None
+        self.message = ""
+
 class GerrPatchSet:
     def __init__(self):
         self.approvals = []
+        self.comments = []
         self.files = []
         self.verify = None
         self.review = None
@@ -148,6 +156,17 @@ class Gerrsh:
         ps.verify = verify
         ps.review = review
 
+    def __parse_comments(self, ps, data):
+        if "comments" in data:
+            for c in data["comments"]:
+                cm = GerrComment()
+                cm.file = c["file"]
+                cm.line = int(c["line"])
+                cm.reviewer = GerrUser(c["reviewer"])
+                cm.message = c["message"]
+
+                ps.comments.append(cm)
+
     def __parse_patchset_files(self, ps, data):
         if "files" in data:
             for f in data["files"]:
@@ -187,13 +206,20 @@ class Gerrsh:
 
         self.__parse_patchset_approvals(ps, data)
         self.__parse_patchset_files(ps, data)
+        self.__parse_comments(ps, data)
 
         return ps
 
     def get_changes(self, filter_list=[]):
+        chk_has_comments = "has:comments" in filter_list
+        if chk_has_comments:
+            filter_list.remove("has:comments")
+
         changes = self.__query_changes(filter_list)
 
         for c in changes:
+            if chk_has_comments and "comments" not in c["currentPatchSet"]:
+                continue
             ch = GerrChange()
             ch.id = c["id"]
             ch.num = c["number"]
@@ -311,6 +337,14 @@ def show_change(ch):
 
     print("      %s" % ("+%d/-%d" % (ins, -dels)))
 
+    if len(ps.comments) > 0:
+        print("")
+        for c in ps.comments:
+            print("%s says on: %s +%d" % (c.reviewer.fullname, c.file, c.line))
+            for s in c.message.splitlines():
+                print("    %s" % s)
+            print("")
+
 def get_change_branch(ch):
     topic = ch.topic if ch.topic != "" else ch.num
     author = re.sub(r'\W+', '_', ch.owner.fullname).lower()
@@ -358,6 +392,8 @@ By default all open changes are listed.
                         help="select only my changes")
     parser.add_argument("-M", "--no-conflict", dest="no_conflict", action="store_true",
                         help="select changes without conflicts")
+    parser.add_argument("-C", "--has-comments", dest="has_comments", action="store_true",
+                        help="select changes which has comments")
     parser.add_argument("-A", "--author", dest="author",
                         help="select changes of specified author")
     parser.add_argument("-O", "--owner", dest="owner",
@@ -391,7 +427,9 @@ By default all open changes are listed.
     if options.my:
         filter_dict["owner"] = "self"
     if options.no_conflict:
-        filter_dict["is"] = "mergeable"
+        filter_list.append("is:mergeable")
+    if options.has_comments:
+        filter_list.append("has:comments")
     if options.author:
         filter_dict["author"] = options.author
     if options.owner:
