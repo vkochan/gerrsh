@@ -158,6 +158,8 @@ class Gerrsh:
 
     def __parse_comments(self, ps, data):
         if "comments" in data:
+            comments = []
+
             for c in data["comments"]:
                 cm = GerrComment()
                 cm.file = c["file"]
@@ -165,7 +167,9 @@ class Gerrsh:
                 cm.reviewer = GerrUser(c["reviewer"])
                 cm.message = c["message"]
 
-                ps.comments.append(cm)
+                comments.append(cm)
+
+            ps.comments = sorted(comments, key=lambda comment: comment.line)
 
     def __parse_patchset_files(self, ps, data):
         if "files" in data:
