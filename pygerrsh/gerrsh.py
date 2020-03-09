@@ -76,14 +76,14 @@ class GerrPatchSet:
         self.uploader = None
         self.revision = ""
         self.git_ref = ""
-        self.num = -1
+        self.num = ""
 
 class GerrChange:
     def __init__(self):
         self.id = ""
         self.branch = ""
         self.topic = ""
-        self.num = -1
+        self.num = ""
         self.subject = ""
         self.owner = None
         self.reviewers = []
@@ -209,6 +209,7 @@ class Gerrsh:
         ps = GerrPatchSet()
 
         ps.git_ref = data["ref"] if "ref" in data else ""
+        ps.num = data["number"]
 
         ps.author = GerrUser()
         ps.author.username = data["author"]["username"]
@@ -259,6 +260,27 @@ class Gerrsh:
             self.changes.append(ch)
 
         return self.changes
+
+    def review_change(self, ch, score, label=None, msg=None):
+        data = {}
+        if label:
+            data["labels"] = {label: score}
+        if msg:
+            data["message"] = msg
+
+        f = tempfile()
+        f.write(json.dumps(data).encode())
+        f.seek(0)
+
+        cmd = ["review", "--json", "%s,%s" % (ch.num, ch.curr_patchset.num)]
+        try:
+            subprocess.check_call(self.cmd + cmd, stdin=f)
+        except:
+            error("failed to submit review for change %s" % ch.num)
+            f.close()
+            sys.exit(1)
+
+        f.close()
 
     def add_comment(self):
         pass
@@ -468,6 +490,10 @@ By default all open changes are listed.
                         help="show comments in the diff form")
     parser.add_argument("--comments-apply", dest="comments_apply", action="store_true",
                         help="apply comments as diff")
+    parser.add_argument("--review-score", dest="review_score",
+                        help="specify review score (+1, etc)")
+    parser.add_argument("--review-msg", dest="review_msg",
+                        help="specify review message")
     parser.add_argument("--host", dest="host",
                         help="gerrit host to fetch changes from")
 
@@ -517,6 +543,9 @@ By default all open changes are listed.
                 return
             if options.comments_apply:
                 comments_apply(ch)
+                return
+            if options.review_score or options.review_msg:
+                gersh.review_change(ch, options.review_score, "Code-Review", options.review_msg)
                 return
 
             show_change(ch)
