@@ -66,6 +66,8 @@ class GerrPatchSet:
     def __init__(self):
         self.approvals = []
         self.comments = []
+        self.comments_by_line = {}
+        self.comments_by_file = {}
         self.files = []
         self.verify = None
         self.review = None
@@ -170,6 +172,15 @@ class Gerrsh:
                 comments.append(cm)
 
             ps.comments = sorted(comments, key=lambda comment: comment.line)
+            for c in ps.comments:
+                if c.line not in ps.comments_by_line:
+                    ps.comments_by_line[c.line] = []
+                ps.comments_by_line[c.line].append(c)
+
+                if c.file not in ps.comments_by_file:
+                    ps.comments_by_file[c.file] = []
+                if c.line not in ps.comments_by_file[c.file]:
+                    ps.comments_by_file[c.file].append(c.line)
 
     def __parse_patchset_files(self, ps, data):
         if "files" in data:
@@ -383,6 +394,31 @@ def checkout_change(ch):
         error("failed to checkout change %s to branch %s" % (ch.num, branch))
         sys.exit(1)
 
+def comments_diff(ch):
+    ps = ch.curr_patchset
+    diff = []
+
+    for f,lines in ps.comments_by_file.items():
+        diff.append("--- a/%s" % f)
+        diff.append("+++ b/%s" % f)
+        for l in lines:
+            comments = ps.comments_by_line[l]
+            comments_added = 0
+            lines_added = 0
+
+            for c in comments:
+                msg_list = c.message.splitlines()
+                msg_lines = len(msg_list) + 1
+                diff.append("@@ -%s,0 +%s,%s @@" % (c.line - 1, c.line + lines_added, msg_lines))
+                lines_added += msg_lines
+                prefix = ">" * (len(comments) - comments_added)
+                diff.append("+%s %s says:" % (prefix, c.reviewer))
+                for m in msg_list:
+                    diff.append("+%s %s" % (prefix, m))
+                comments_added += 1
+
+    print(os.linesep.join(diff))
+
 def main():
     usage = "gerrsh [OPTIONS] ... [CHANGEID]"
     description = """
@@ -406,6 +442,8 @@ By default all open changes are listed.
                         help="fetch change from gerrit to git")
     parser.add_argument("-c", "--checkout", dest="checkout", action="store_true",
                         help="checkout already fetched change from gerrit")
+    parser.add_argument("--comments-diff", dest="comments_diff", action="store_true",
+                        help="show comments in the diff form")
     parser.add_argument("--host", dest="host",
                         help="gerrit host to fetch changes from")
 
@@ -450,9 +488,11 @@ By default all open changes are listed.
             if options.get:
                 get_change(ch)
                 return
-
             if options.checkout:
                 checkout_change(ch)
+                return
+            if options.comments_diff:
+                comments_diff(ch)
                 return
 
             show_change(ch)
