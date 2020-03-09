@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from tempfile import SpooledTemporaryFile as tempfile
 from subprocess import PIPE
 import subprocess
 import argparse
@@ -408,23 +409,38 @@ def comments_diff(ch):
     for f,lines in ps.comments_by_file.items():
         diff.append("--- a/%s" % f)
         diff.append("+++ b/%s" % f)
+        lines_added = 0
         for l in lines:
             comments = ps.comments_by_line[l]
             comments_added = 0
-            lines_added = 0
 
             for c in comments:
                 msg_list = c.message.splitlines()
                 msg_lines = len(msg_list) + 1
-                diff.append("@@ -%s,0 +%s,%s @@" % (c.line - 1, c.line + lines_added, msg_lines))
-                lines_added += msg_lines
+                line = c.line + 1
+                diff.append("@@ -%s,0 +%s,%s @@" % (line - 1, line + lines_added, msg_lines))
                 prefix = ">" * (len(comments) - comments_added)
                 diff.append("+%s %s says:" % (prefix, c.reviewer))
                 for m in msg_list:
                     diff.append("+%s %s" % (prefix, m))
+                lines_added += msg_lines + 2
                 comments_added += 1
 
-    print(os.linesep.join(diff))
+    return os.linesep.join(diff) + os.linesep
+
+def comments_apply(ch):
+    f = tempfile()
+    f.write(comments_diff(ch).encode())
+    f.seek(0)
+
+    try:
+        subprocess.check_output(["patch", "-u", "--verbose", "-p1"], stdin=f)
+    except:
+        error("failed to apply comments from change %s" % ch.num)
+        f.close()
+        sys.exit(1)
+
+    f.close()
 
 def main():
     usage = "gerrsh [OPTIONS] ... [CHANGEID]"
@@ -449,6 +465,8 @@ By default all open changes are listed.
                         help="checkout change from gerrit")
     parser.add_argument("--comments-diff", dest="comments_diff", action="store_true",
                         help="show comments in the diff form")
+    parser.add_argument("--comments-apply", dest="comments_apply", action="store_true",
+                        help="apply comments as diff")
     parser.add_argument("--host", dest="host",
                         help="gerrit host to fetch changes from")
 
@@ -494,7 +512,10 @@ By default all open changes are listed.
                 checkout_change(ch)
                 return
             if options.comments_diff:
-                comments_diff(ch)
+                print(comments_diff(ch))
+                return
+            if options.comments_apply:
+                comments_apply(ch)
                 return
 
             show_change(ch)
