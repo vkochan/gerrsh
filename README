@@ -1,0 +1,42 @@
+gerrsh is a yet another tool for review changes from Gerrit inspired by git-review.
+
+Usage:
+    List all open reviews:
+        $ gerrsh
+
+    List all open reviews which has comments on patch set:
+        $ gerrsh -C
+
+    List all open reviews which has no conflicts (mergeable):
+        $ gerrsh -M
+
+    List all open reviews in which the owner is myself:
+
+        $ gerrsh --my
+
+    Checkout change from Gerrit into local git repo - it will create new branch
+    (if it does not exist) and checkout into it:
+
+        $ gerrsh -c
+
+    Show review comments in form of diff, it allows to redirect it into file
+    and apply it as a patch to local git repository and easy see them with some
+    git diff tool (vim-fugitive).Such approach allows to browse over comments
+    in terminal mode:
+
+        $ gerrsh --comments-diff CHANGEID
+
+    Apply diff from previous option into local git repository (changes will be showed by git
+    as 'modified'), it is recommented to perform 'git reset --hard HEAD' before applying:
+
+        $ gerrsh --comments-apply CHANGEID
+
+    Submit review reply:
+
+        $ gerrsh --review-msg 'nice!' --review-score +1 CHANGEID
+        $ gerrsh --review-msg 'needs to be refactored' CHANGEID
+        $ gerrsh --review-score +1 CHANGEID
+
+    Show review info:
+
+        $ gerrsh CHANGEID
