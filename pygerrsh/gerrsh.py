@@ -450,7 +450,8 @@ Tool for review changes from Gerrit
 By default all open changes are listed.
 """
 
-    parser = argparse.ArgumentParser(usage=usage, description=description)
+    fmt_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=60)
+    parser = argparse.ArgumentParser(usage=usage, description=description, formatter_class=fmt_class)
     parser.add_argument("--my", dest="my", action="store_true",
                         help="select only my changes")
     parser.add_argument("-M", "--no-conflict", dest="no_conflict", action="store_true",
