@@ -365,7 +365,19 @@ def get_change_branch(ch):
     author = re.sub(r'\W+', '_', ch.owner.fullname).lower()
     return "review/%s/%s" % (author, topic)
 
-def get_change(ch):
+def branch_exist(branch):
+    cmd = ["git", "branch"]
+    out = ""
+
+    try:
+        out = subprocess.check_output(cmd).decode("utf-8")
+    except:
+        error("failed to execute %s" % " ".join(cmd))
+        sys.exit(1)
+
+    return branch in [s.strip().replace("* ", "") for s in out.splitlines()]
+
+def checkout_change(ch):
     ref = ch.curr_patchset.git_ref
     cmd = ["git", "fetch", "origin", ref]
 
@@ -376,17 +388,12 @@ def get_change(ch):
         sys.exit(1)
 
     branch = get_change_branch(ch)
+    cmd = ["git", "checkout"]
 
-    try:
-        cmd = ["git", "checkout", "-b", branch, "FETCH_HEAD"]
-        subprocess.check_call(cmd)
-    except:
-        error("failed to checkout change %s to branch %s" % (ch.num, branch))
-        sys.exit(1)
+    if not branch_exist(branch):
+        cmd.append("-b")
 
-def checkout_change(ch):
-    branch = get_change_branch(ch)
-    cmd = ["git", "checkout", branch]
+    cmd.append(branch)
 
     try:
         subprocess.check_call(cmd)
@@ -438,10 +445,8 @@ By default all open changes are listed.
                         help="select changes of specified author")
     parser.add_argument("-O", "--owner", dest="owner",
                         help="select changes of specified owner")
-    parser.add_argument("-g", "--get", dest="get", action="store_true",
-                        help="fetch change from gerrit to git")
     parser.add_argument("-c", "--checkout", dest="checkout", action="store_true",
-                        help="checkout already fetched change from gerrit")
+                        help="checkout change from gerrit")
     parser.add_argument("--comments-diff", dest="comments_diff", action="store_true",
                         help="show comments in the diff form")
     parser.add_argument("--host", dest="host",
@@ -485,9 +490,6 @@ By default all open changes are listed.
         if len(changes) == 1:
             ch = changes[0]
 
-            if options.get:
-                get_change(ch)
-                return
             if options.checkout:
                 checkout_change(ch)
                 return
