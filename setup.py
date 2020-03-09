@@ -4,6 +4,7 @@ setup(
     name='gerrsh',
     version='0.1',
     scripts=['gerrsh'],
+    packages=['pygerrsh'],
     author="Vadym Kochan",
     author_email="vadim4j@gmail.com",
     description="Command-line tool for review Gerrit changes",
