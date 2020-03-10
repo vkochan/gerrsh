@@ -403,6 +403,7 @@ def branch_exist(branch):
 def checkout_change(ch):
     ref = ch.curr_patchset.git_ref
     cmd = ["git", "fetch", "origin", ref]
+    is_exist = False
 
     try:
         subprocess.check_call(cmd)
@@ -411,12 +412,16 @@ def checkout_change(ch):
         sys.exit(1)
 
     branch = get_change_branch(ch)
+    is_exist = branch_exist(branch)
     cmd = ["git", "checkout"]
 
-    if not branch_exist(branch):
+    if not is_exist:
         cmd.append("-b")
 
     cmd.append(branch)
+
+    if not is_exist:
+        cmd.append("FETCH_HEAD")
 
     try:
         subprocess.check_call(cmd)
