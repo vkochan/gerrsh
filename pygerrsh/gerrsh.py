@@ -402,6 +402,9 @@ def show_change(ch):
         ins = ins + f.ins
         print("    %s %-10s %s" % (state, stats, f.path))
     print("      %s" % ("+%d/-%d" % (ins, -dels)))
+    if len(ps.comments) > 0:
+        print("")
+        print("Comments: %d" % len(ps.comments))
 
 def show_comments(ch):
     ps = ch.curr_patchset
