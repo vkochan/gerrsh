@@ -1,6 +1,79 @@
 gerrsh is a yet another tool for review changes from Gerrit inspired by git-review.
 
-Usage:
+Sample review workflow
+======================
+
+Review process is done in the following steps:
+1) checkout change from gerrit to local git:
+
+    $ gerrsh -c CHANGEID
+    $ gerrsh --comments-diff CHANGEID
+
+2) apply comments, comments will be obtained from Gerrit,
+generated in form of diff, and applied into current directory,
+so they might be seen as diff in some difftool. Each commented
+line is generated to separate hunk with comments added for this line:
+
+    $ git reset --hard HEAD
+    $ gerrsh --comments-diff CHANGEID | patch -p1
+
+3) open diff tool and add comment:
+
+----[SNIP]----
+struct xxx {
+> Vadym Kochan <aaa@bbb.ccc> wrote:
+> | please use proper name
+	int a;
+	int b;
+};
+----[SNIP]----
+
+add new comment by putting text under last '>' line:
+
+----[SNIP]----
+struct xxx {
+> Vadym Kochan <aaa@bbb.ccc> wrote:
+> | please use proper name
+OK
+Will do.
+	int a;
+	int b;
+};
+----[SNIP]----
+
+exit difftool, and push comments to Gerrit, so all unprefixed (w/o ">", ">>" etc) new lines
+will be used as comment. In this case message:
+
+----[SNIP]----
+OK
+Will
+----[SNIP]----
+
+will be added as comment for line which contains 'struct xxx {'.
+
+4) exit difftool and push comments to Gerrit:
+
+    $ gerrsh --comments-push CHANGEID
+
+after push the comments will be seen as:
+
+----[SNIP]----
+struct xxx {
+>> Vadym Kochan <aaa@bbb.ccc> wrote:
+>> | please use proper name
+> Vadym Kochan <aaa@bbb.ccc> wrote:
+> | OK
+> | Will do.
+	int a;
+	int b;
+};
+----[SNIP]----
+
+if to re-apply comments diff.
+
+Usage
+=====
+
     List all open reviews:
         $ gerrsh
 
