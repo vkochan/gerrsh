@@ -244,6 +244,7 @@ class Gerrsh:
             ch.branch = c["branch"]
             ch.subject = c["subject"]
             ch.project = c["project"]
+            ch.wip = True if "wip" in c else False
             ch.commit_msg = c["commitMessage"]
 
             if "topic" in c:
@@ -327,9 +328,11 @@ def list_changes(changes):
     for c in changes:
         verify = review_state_fmt("V", c.curr_patchset.verify.value)
         review = review_state_fmt("CR", c.curr_patchset.review.value)
-        state = verify + " " + review
+        wip = "W" if c.wip else " "
 
-        print("%-8s%-10s%-20s%-20s%-25s%s" % (c.num, state, c.project, c.branch, c.owner.username, c.subject))
+        state = "%s %-4s %-5s" % (wip, verify, review)
+
+        print("%-8s%-14s%-20s%-20s%-25s%s" % (c.num, state, c.project, c.branch, c.owner.username, c.subject))
 
 def show_change(ch):
     ps = ch.curr_patchset
