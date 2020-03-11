@@ -333,7 +333,7 @@ def list_changes(changes):
 
         state = "%s %-4s %-5s" % (wip, verify, review)
 
-        print("%-8s%-14s%-20s%-20s%-25s%s" % (c.num, state, c.project, c.branch, c.owner.username, c.subject))
+        print("%-8s%-14s%-20s%-20s%-25s%.60s" % (c.num, state, c.project, c.branch, c.owner.username, c.subject))
 
 def show_change(ch):
     ps = ch.curr_patchset
