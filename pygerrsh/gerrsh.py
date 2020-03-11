@@ -62,6 +62,7 @@ class GerrComment:
         self.line = -1
         self.reviewer = None
         self.message = ""
+        self.in_reply_to = -1
 
 class GerrPatchSet:
     def __init__(self):
@@ -261,12 +262,29 @@ class Gerrsh:
 
         return self.changes
 
-    def review_change(self, ch, score, label=None, msg=None):
+    def review_change(self, ch, score, label=None, msg=None, comments=[], verify=False):
         data = {}
-        if label:
-            data["labels"] = {label: score}
-        if msg:
-            data["message"] = msg
+        if label or msg or len(comments) > 0:
+            if label:
+                data["labels"] = {label: score}
+            if msg:
+                data["message"] = msg
+            if len(comments) > 0:
+                data["comments"] = {}
+                for c in comments:
+                    if c.file not in data["comments"]:
+                        data["comments"][c.file] = []
+
+                    cdata = {}
+                    cdata["message"] = c.message
+                    cdata["unresolved"] = True
+                    cdata["line"] = c.line
+                    if c.in_reply_to >= 0:
+                        cdata["in_reply_to"] = c.in_reply_to
+
+                    data["comments"][c.file].append(cdata)
+        else:
+            return
 
         f = tempfile()
         f.write(json.dumps(data).encode())
@@ -469,6 +487,102 @@ def comments_apply(ch):
 
     f.close()
 
+def thread_comment_extract(ch, comments, i):
+    pass
+
+def new_comments_parse(ch):
+    try:
+        diff = subprocess.check_output(["git", "diff", "-U0"]).decode("utf-8")
+    except:
+        error("failed to get comments diff")
+        sys.exit(1)
+
+    hunk_pattern = "@@ -(?P<orig_idx>([0-9])*),(([0-9])*) \+(?P<new_idx>([0-9])*)(,(?P<new_num>([0-9])*))? @@.*"
+    hunk_re = re.compile(hunk_pattern)
+    path_orig_re = re.compile("--- ([^W]*)")
+    path_new_re = re.compile("\+\+\+ ([^W]*)")
+    diff_git_re = re.compile("diff --git .*")
+    thread_re = re.compile("(?P<level>>+) .*")
+    m_git_diff = None
+    path = None
+
+    diff_lines = diff.splitlines()
+    ps = ch.curr_patchset
+    comments = []
+    i = 0
+    while i < len(diff_lines):
+        if not m_git_diff:
+            m_git_diff = diff_git_re.search(diff_lines[i])
+            if m_git_diff:
+                i += 1
+                continue
+
+        m_path_orig = path_orig_re.search(diff_lines[i])
+        if m_path_orig:
+            m_path_new = path_new_re.search(diff_lines[i + 1])
+            if m_path_orig and m_path_new:
+                if m_git_diff:
+                    path = re.sub("([^W]/)?", "", m_path_orig.group(1), 1)
+                else:
+                    path = m_path_orig.group(1)
+                # skip '--- +++ path'
+                i += 2
+        m_hunk = hunk_re.match(diff_lines[i])
+        if not m_hunk:
+            i += 1
+            continue
+        i += 1
+
+        if m_hunk.group("new_num"):
+            line_count = int(m_hunk.group("new_num"))
+        else:
+            line_count = 1
+
+        line_idx = int(m_hunk.group("orig_idx"))
+
+        has_thread = False
+        new_lines = []
+        curr_thread = 0
+        next_thread = 0
+        j = 0
+
+        # process the diff hunk
+        while j < line_count:
+            # skip diff's '+'
+            line = diff_lines[i + j][1:]
+            m_thread = thread_re.match(line)
+            if m_thread:
+                curr_thread = len(m_thread.group("level"))
+                next_thread = curr_thread - 1
+            else:
+                new_lines.append(line)
+            if len(new_lines) == 0:
+                j += 1
+                continue
+            # if last line of hunk or thread changed
+            if j == line_count - 1 or curr_thread != next_thread:
+                reply_to = -1
+
+                # NOTE: currently query command does not put comment id
+                # in comment attributes, so it is impossible to
+                # support in_reply_to feature.
+                # if curr_thread > 0:
+                #     thread_list = ps.comments_by_line[line_idx]
+                #     reply_to = ps.comments.index(thread_list[len(thread_list) - curr_thread])
+
+                c = GerrComment()
+                c.line = line_idx
+                c.file = path
+                c.message = os.linesep.join(new_lines)
+                c.in_reply_to = reply_to
+                comments.append(c)
+
+                next_thread = curr_thread
+                new_lines[:] = []
+            j += 1
+        i += j
+    return comments
+
 def main():
     usage = "gerrsh [OPTIONS] ... [CHANGEID]"
     description = """
@@ -495,6 +609,8 @@ By default all open changes are listed.
                         help="show comments in the diff form")
     parser.add_argument("--comments-apply", dest="comments_apply", action="store_true",
                         help="apply comments as diff")
+    parser.add_argument("--comments-push", dest="comments_push", action="store_true",
+                        help="parse and push comments from local git diff")
     parser.add_argument("--review-score", dest="review_score",
                         help="specify review score (+1, etc)")
     parser.add_argument("--review-msg", dest="review_msg",
@@ -548,6 +664,13 @@ By default all open changes are listed.
                 return
             if options.comments_apply:
                 comments_apply(ch)
+                return
+            if options.comments_push:
+                new_comments = new_comments_parse(ch)
+                if len(new_comments) == 0:
+                    print("no new comments")
+                    sys.exit(0)
+                gersh.review_change(ch, None, None, None, new_comments, verify=True)
                 return
             if options.review_score or options.review_msg:
                 gersh.review_change(ch, options.review_score, "Code-Review", options.review_msg)
