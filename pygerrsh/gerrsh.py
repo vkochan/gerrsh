@@ -286,8 +286,14 @@ class Gerrsh:
         else:
             return
 
+        jdata = json.dumps(data).encode()
+
+        if verify:
+            print(jdata)
+            return
+
         f = tempfile()
-        f.write(json.dumps(data).encode())
+        f.write(jdata)
         f.seek(0)
 
         cmd = ["review", "--json", "%s,%s" % (ch.num, ch.curr_patchset.num)]
@@ -615,6 +621,8 @@ By default all open changes are listed.
                         help="specify review score (+1, etc)")
     parser.add_argument("--review-msg", dest="review_msg",
                         help="specify review message")
+    parser.add_argument("--verify", dest="verify", action="store_true",
+                        help="only verify JSON data output")
     parser.add_argument("--host", dest="host",
                         help="gerrit host to fetch changes from")
 
@@ -670,10 +678,10 @@ By default all open changes are listed.
                 if len(new_comments) == 0:
                     print("no new comments")
                     sys.exit(0)
-                gersh.review_change(ch, None, None, None, new_comments, verify=True)
+                gersh.review_change(ch, None, None, None, new_comments, verify=options.verify)
                 return
             if options.review_score or options.review_msg:
-                gersh.review_change(ch, options.review_score, "Code-Review", options.review_msg)
+                gersh.review_change(ch, options.review_score, "Code-Review", options.review_msg, [], verify=options.verify)
                 return
 
             show_change(ch)
