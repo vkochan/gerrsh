@@ -211,6 +211,7 @@ class Gerrsh:
 
         ps.git_ref = data["ref"] if "ref" in data else ""
         ps.num = data["number"]
+        ps.revision = data["revision"]
 
         ps.author = GerrUser()
         ps.author.username = data["author"]["username"]
@@ -353,6 +354,7 @@ def show_change(ch):
 
     print("")
 
+    print("Revision: %s" % ps.revision)
     print("Project: %s" % ch.project)
     print("Branch: %s" % ch.branch)
     print("Topic: %s" % ch.topic)
