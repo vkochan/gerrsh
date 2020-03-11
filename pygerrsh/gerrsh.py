@@ -465,9 +465,9 @@ def comments_diff(ch):
                 line = c.line + 1
                 diff.append("@@ -%s,0 +%s,%s @@" % (line - 1, line + lines_added, msg_lines))
                 prefix = ">" * (len(comments) - comments_added)
-                diff.append("+%s %s says:" % (prefix, c.reviewer))
+                diff.append("+%s %s wrote:" % (prefix, c.reviewer))
                 for m in msg_list:
-                    diff.append("+%s %s" % (prefix, m))
+                    diff.append("+%s | %s" % (prefix, m))
                 lines_added += msg_lines + 2
                 comments_added += 1
 
