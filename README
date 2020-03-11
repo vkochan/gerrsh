@@ -19,18 +19,18 @@ line is generated to separate hunk with comments added for this line:
 
 3) open diff tool and add comment:
 
-----[SNIP]----
+----<snip>----
 struct xxx {
 > Vadym Kochan <aaa@bbb.ccc> wrote:
 > | please use proper name
 	int a;
 	int b;
 };
-----[SNIP]----
+----</snip>---
 
 add new comment by putting text under last '>' line:
 
-----[SNIP]----
+----<snip>----
 struct xxx {
 > Vadym Kochan <aaa@bbb.ccc> wrote:
 > | please use proper name
@@ -39,15 +39,15 @@ Will do.
 	int a;
 	int b;
 };
-----[SNIP]----
+----</snip>---
 
 exit difftool, and push comments to Gerrit, so all unprefixed (w/o ">", ">>" etc) new lines
 will be used as comment. In this case message:
 
-----[SNIP]----
+----<snip>----
 OK
 Will
-----[SNIP]----
+----</snip>---
 
 will be added as comment for line which contains 'struct xxx {'.
 
@@ -57,7 +57,7 @@ will be added as comment for line which contains 'struct xxx {'.
 
 after push the comments will be seen as:
 
-----[SNIP]----
+----<snip>----
 struct xxx {
 >> Vadym Kochan <aaa@bbb.ccc> wrote:
 >> | please use proper name
@@ -67,7 +67,7 @@ struct xxx {
 	int a;
 	int b;
 };
-----[SNIP]----
+----</snip>---
 
 if to re-apply comments diff.
 
