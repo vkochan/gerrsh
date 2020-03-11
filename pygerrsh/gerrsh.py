@@ -399,9 +399,10 @@ def show_change(ch):
         dels = dels + f.dels
         ins = ins + f.ins
         print("    %s %-10s %s" % (state, stats, f.path))
-
     print("      %s" % ("+%d/-%d" % (ins, -dels)))
 
+def show_comments(ch):
+    ps = ch.curr_patchset
     if len(ps.comments) > 0:
         print("")
         for c in ps.comments:
@@ -620,6 +621,8 @@ By default all open changes are listed.
                         help="apply comments as diff")
     parser.add_argument("--comments-push", dest="comments_push", action="store_true",
                         help="parse and push comments from local git diff")
+    parser.add_argument("--comments", dest="comments_show", action="store_true",
+                        help="show comments of specified change")
     parser.add_argument("--review-score", dest="review_score",
                         help="specify review score (+1, etc)")
     parser.add_argument("--review-msg", dest="review_msg",
@@ -685,6 +688,9 @@ By default all open changes are listed.
                 return
             if options.review_score or options.review_msg:
                 gersh.review_change(ch, options.review_score, "Code-Review", options.review_msg, [], verify=options.verify)
+                return
+            if options.comments_show:
+                show_comments(ch)
                 return
 
             show_change(ch)
