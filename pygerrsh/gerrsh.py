@@ -418,9 +418,8 @@ def show_comments(ch):
             print("")
 
 def get_change_branch(ch):
-    topic = ch.topic if ch.topic != "" else ch.num
     author = re.sub(r'\W+', '_', ch.owner.fullname).lower()
-    return "review/%s/%s" % (author, topic)
+    return "review/%s/%s-p%s" % (author, ch.num, ch.curr_patchset.num)
 
 def branch_exist(branch):
     cmd = ["git", "branch"]
