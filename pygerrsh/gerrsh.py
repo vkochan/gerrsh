@@ -110,7 +110,7 @@ class Gerrsh:
         # return proc.stdout.decode("utf-8")
 
     def __query_changes(self, filter_list=[]):
-        params = ["--format=json", "--files", "--comments", "--all-reviewers", "--current-patch-set", "status:open"]
+        params = ["--format=json", "--files", "--comments", "--all-reviewers", "--current-patch-set"]
         params.append(" ".join(filter_list))
         changes = []
         resp = self.do_cmd("query", params)
@@ -651,11 +651,13 @@ By default all open changes are listed.
 
     gersh = Gerrsh(host)
 
-    filter_dict = {"status":"open"}
+    filter_dict = {}
     filter_list = []
 
     if options.changeid:
         filter_dict["change"] = options.changeid
+    else:
+        filter_dict["status"] = "open"
     if options.my:
         filter_dict["owner"] = "self"
     if options.no_conflict:
