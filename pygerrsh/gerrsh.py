@@ -355,6 +355,7 @@ def show_change(ch):
     print("")
 
     print("Revision: %s" % ps.revision)
+    print("PatchSet: %d" % ps.num)
     print("Project: %s" % ch.project)
     print("Branch: %s" % ch.branch)
     print("Topic: %s" % ch.topic)
