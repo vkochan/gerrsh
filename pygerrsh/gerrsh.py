@@ -610,6 +610,8 @@ By default all open changes are listed.
     parser = argparse.ArgumentParser(usage=usage, description=description, formatter_class=fmt_class)
     parser.add_argument("--my", dest="my", action="store_true",
                         help="select only my changes")
+    parser.add_argument("--to-me", dest="to_me", action="store_true",
+                        help="select changes where I was added as reviewer")
     parser.add_argument("-M", "--no-conflict", dest="no_conflict", action="store_true",
                         help="select changes without conflicts")
     parser.add_argument("-C", "--has-comments", dest="has_comments", action="store_true",
@@ -664,6 +666,8 @@ By default all open changes are listed.
         filter_list.append("is:mergeable")
     if options.has_comments:
         filter_list.append("has:comments")
+    if options.to_me:
+        filter_list.append("reviewer:self")
     if options.author:
         filter_dict["author"] = options.author
     if options.owner:
