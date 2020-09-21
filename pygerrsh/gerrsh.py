@@ -20,10 +20,11 @@ class GerrUser:
         if data is None:
             self.username = ""
             self.fullname = ""
-            self.email = ""
+            self.email = "none"
         else:
             self.username = data["username"]
-            self.email = data["email"]
+            if "email" in data:
+                self.email = data["email"]
             if "name" in data:
                 self.fullname = data["name"]
             else:
@@ -216,12 +217,18 @@ class Gerrsh:
         ps.author = GerrUser()
         ps.author.username = data["author"]["username"]
         ps.author.fullname = data["author"]["name"]
-        ps.author.email = data["author"]["email"]
+        if "email" in data["author"]:
+            ps.author.email = data["author"]["email"]
+        else:
+            ps.author.email = "<none>"
 
         ps.uploader = GerrUser()
         ps.uploader.username = data["uploader"]["username"]
         ps.uploader.fullname = data["uploader"]["name"]
-        ps.uploader.email = data["uploader"]["email"]
+        if "email" in data["uploader"]:
+            ps.uploader.email = data["uploader"]["email"]
+        else:
+            ps.uploader.email = "<none>"
 
         self.__parse_patchset_approvals(ps, data)
         self.__parse_patchset_files(ps, data)
@@ -254,7 +261,11 @@ class Gerrsh:
             ch.owner = GerrUser()
             ch.owner.username = c["owner"]["username"]
             ch.owner.fullname = c["owner"]["name"]
-            ch.owner.email = c["owner"]["email"]
+
+            if "email" in c["owner"]:
+                ch.owner.email = c["owner"]["email"]
+            else:
+                ch.owner.email = "<none>";
 
             ch.curr_patchset = self.__parse_patchset(c["currentPatchSet"])
 
